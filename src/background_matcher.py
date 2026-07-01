@@ -1,5 +1,4 @@
 import asyncio
-import aiohttp
 import requests
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass, field
@@ -11,7 +10,6 @@ import hashlib
 from pathlib import Path
 from PIL import Image, ImageEnhance, ImageFilter
 import logging
-from functools import wraps
 import random
 
 # Configure logging
@@ -152,14 +150,14 @@ class BackgroundMatcher:
         if self.session:
             await self.session.close()
     
-    def _rate_limit(self, source: BackgroundSource):
+    async def _rate_limit(self, source: BackgroundSource):
         """Implement rate limiting for API requests."""
         current_time = time.time()
         last_time = self.last_request_time.get(source.value, 0)
         
         if current_time - last_time < self.min_request_interval:
             sleep_time = self.min_request_interval - (current_time - last_time)
-            time.sleep(sleep_time)
+            await asyncio.sleep(sleep_time)
         
         self.last_request_time[source.value] = time.time()
     
@@ -202,7 +200,7 @@ class BackgroundMatcher:
             logger.warning("Pexels API key not configured")
             return None
         
-        self._rate_limit(BackgroundSource.PEXELS)
+        await self._rate_limit(BackgroundSource.PEXELS)
         
         url = "https://api.pexels.com/v1/search"
         params = {
@@ -253,7 +251,7 @@ class BackgroundMatcher:
             logger.warning("Pixabay API key not configured")
             return None
         
-        self._rate_limit(BackgroundSource.PIXABAY)
+        await self._rate_limit(BackgroundSource.PIXABAY)
         
         url = "https://pixabay.com/api/"
         params = {
@@ -306,7 +304,7 @@ class BackgroundMatcher:
             logger.warning("Unsplash API key not configured")
             return None
         
-        self._rate_limit(BackgroundSource.UNSPLASH)
+        await self._rate_limit(BackgroundSource.UNSPLASH)
         
         url = "https://api.unsplash.com/photos/random"
         params = {

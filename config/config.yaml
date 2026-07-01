@@ -21,15 +21,7 @@ audio:
 ai:
   primary: nvidia_nim
   backup: gemini
-  backup2: groq
   nvidia_model: meta/llama-3.1-70b-instruct
-
-reddit:
-  subreddits: [revengestories, ProRevenge, pettyrevenge, NuclearRevenge, family]
-  time_filter: month
-  min_score: 10
-  min_length: 500
-  max_length: 3000
 
 youtube:
   category: Entertainment

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="app.title">YouTube Revenge Factory Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🎬</text></svg>">
+</head>
+<body>
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <h2 data-i18n="app.title">YouTube Revenge Factory</h2>
+    </div>
+    <ul class="nav-list">
+      <li><a href="#settings" class="nav-link active" data-i18n="nav.settings">Settings</a></li>
+      <li><a href="#pipeline" class="nav-link" data-i18n="nav.pipeline">Pipeline</a></li>
+      <li><a href="#analytics" class="nav-link" data-i18n="nav.analytics">Analytics</a></li>
+      <li><a href="#logs" class="nav-link" data-i18n="nav.logs">Logs</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <button id="language-toggle" class="btn-icon" data-i18n="language.toggle">العربية</button>
+      <button id="theme-toggle" class="btn-icon" data-i18n="theme.toggle">Toggle Theme</button>
+      <div class="connection-status">
+        <span id="connection-status" class="status-indicator disconnected"></span>
+        <span id="connection-text" data-i18n="connection.disconnected">Disconnected</span>
+      </div>
+    </div>
+  </nav>
+
+  <main class="content">
+    <!-- Settings Section -->
+    <section id="settings" class="content-section active">
+      <h1 data-i18n="settings.title">Settings</h1>
+      <div id="save-status" class="save-status clean">All changes saved</div>
+      <form id="settings-form" class="settings-grid">
+        <div class="settings-card">
+          <h3 data-i18n="settings.content">Content Source</h3>
+          <label data-i18n="content.source">Content Source</label>
+          <input type="text" id="content-source" placeholder="e.g., youtube, manual">
+
+          <label data-i18n="content.apiKey">API Key</label>
+          <input type="password" id="content-api-key" placeholder="Enter API key">
+
+          <label data-i18n="content.endpoint">Endpoint</label>
+          <input type="text" id="content-endpoint" placeholder="https://...">
+
+          <label data-i18n="content.model">Model</label>
+          <input type="text" id="content-model" placeholder="model-name">
+        </div>
+
+        <div class="settings-card">
+          <h3 data-i18n="settings.ai">AI Configuration</h3>
+          <label data-i18n="ai.provider">AI Provider</label>
+          <select id="ai-provider">
+            <option value="nvidia">NVIDIA NIM</option>
+            <option value="gemini">Gemini</option>
+          </select>
+
+          <label data-i18n="ai.apiKey">API Key</label>
+          <input type="password" id="ai-api-key" placeholder="Enter API key">
+
+          <label data-i18n="ai.model">Model</label>
+          <input type="text" id="ai-model" placeholder="model-name">
+
+          <label data-i18n="ai.temperature">Temperature</label>
+          <input type="number" id="ai-temperature" min="0" max="2" step="0.1" value="0.7">
+        </div>
+
+        <div class="settings-card">
+          <h3 data-i18n="settings.video">Video Settings</h3>
+          <label data-i18n="video.resolution">Resolution</label>
+          <select id="video-resolution">
+            <option value="1080x1920">1080×1920</option>
+            <option value="1920x1080">1920×1080</option>
+            <option value="3840x2160">3840×2160 (4K)</option>
+          </select>
+
+          <label data-i18n="video.fps">FPS</label>
+          <input type="number" id="video-fps" min="24" max="60" value="30">
+
+          <label data-i18n="video.duration">Duration (seconds)</label>
+          <input type="number" id="video-duration" min="30" max="600" value="120">
+        </div>
+
+        <div class="settings-card">
+          <h3 data-i18n="settings.backgrounds">Backgrounds</h3>
+          <label data-i18n="backgrounds.provider">Background Provider</label>
+          <select id="backgrounds-provider">
+            <option value="">Auto</option>
+            <option value="pexels">Pexels</option>
+            <option value="unsplash">Unsplash</option>
+            <option value="gradient">Gradient</option>
+          </select>
+
+          <label data-i18n="backgrounds.apiKey">API Key</label>
+          <input type="password" id="backgrounds-api-key" placeholder="Enter API key">
+        </div>
+
+        <div class="settings-card">
+          <h3 data-i18n="settings.thumbnail">Thumbnail</h3>
+          <label data-i18n="thumbnail.style">Thumbnail Style</label>
+          <select id="thumbnail-style">
+            <option value="modern">Modern</option>
+            <option value="dramatic">Dramatic</option>
+            <option value="minimal">Minimal</option>
+          </select>
+
+          <label data-i18n="thumbnail.template">Template</label>
+          <input type="text" id="thumbnail-template" placeholder="template-name">
+
+          <label data-i18n="thumbnail.overlay">Overlay Text</label>
+          <input type="text" id="thumbnail-overlay" placeholder="Revenge Story">
+        </div>
+
+        <div class="settings-card">
+          <h3 data-i18n="settings.seo">SEO</h3>
+          <label data-i18n="seo.title">Video Title Template</label>
+          <input type="text" id="seo-title" placeholder="{title} - Revenge Story">
+
+          <label data-i18n="seo.description">Description Template</label>
+          <textarea id="seo-description" rows="3" placeholder="Watch this amazing revenge story..."></textarea>
+
+          <label data-i18n="seo.tags">Tags</label>
+          <input type="text" id="seo-tags" placeholder="revenge, story, drama">
+        </div>
+
+        <div class="settings-card">
+          <h3 data-i18n="settings.publishing">Publishing</h3>
+          <label data-i18n="publishing.platform">Publishing Platform</label>
+          <select id="publishing-platform">
+            <option value="youtube">YouTube</option>
+            <option value="tiktok">TikTok</option>
+          </select>
+
+          <label data-i18n="publishing.schedule">Schedule</label>
+          <select id="publishing-schedule">
+            <option value="immediate">Immediate</option>
+            <option value="scheduled">Scheduled</option>
+          </select>
+
+          <label>
+            <input type="checkbox" id="publishing-auto-upload">
+            <span data-i18n="publishing.autoUpload">Auto Upload</span>
+          </label>
+        </div>
+      </form>
+
+      <div class="actions">
+        <button id="save-button" class="btn-primary" data-i18n="save">Save</button>
+        <button id="run-pipeline" class="btn-secondary" data-i18n="run.pipeline">Run Pipeline Now</button>
+      </div>
+    </section>
+
+    <!-- Pipeline Section -->
+    <section id="pipeline" class="content-section">
+      <h1 data-i18n="pipeline.status">Pipeline Status</h1>
+      <table id="pipeline-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Trigger</th>
+            <th>Duration</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="5">No pipeline runs yet</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Analytics Section -->
+    <section id="analytics" class="content-section">
+      <h1 data-i18n="analytics.videos">Analytics</h1>
+      <div class="analytics-grid">
+        <div class="analytics-card">
+          <h3 data-i18n="analytics.videos">Videos Published</h3>
+          <p id="analytics-videos" class="analytics-value">0</p>
+        </div>
+        <div class="analytics-card">
+          <h3 data-i18n="analytics.views">Total Views</h3>
+          <p id="analytics-views" class="analytics-value">0</p>
+        </div>
+        <div class="analytics-card">
+          <h3 data-i18n="analytics.engagement">Engagement Rate</h3>
+          <p id="analytics-engagement" class="analytics-value">0%</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Logs Section -->
+    <section id="logs" class="content-section">
+      <h1 data-i18n="pipeline.logs">Pipeline Logs</h1>
+      <div id="logs-container" class="logs-container">
+        <p>No logs available</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Notifications -->
+  <div id="notifications" class="notifications"></div>
+
+  <!-- Logs Modal -->
+  <div id="logs-modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h2>Pipeline Logs</h2>
+      <div id="modal-logs-container"></div>
+    </div>
+  </div>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,5 +1,5 @@
-const supabaseUrl = 'https://your-supabase-url.supabase.co';
-const supabaseKey = 'your-supabase-anon-key';
+const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || window?.CONFIG?.SUPABASE_URL || '';
+const supabaseKey = import.meta.env?.VITE_SUPABASE_KEY || window?.CONFIG?.SUPABASE_KEY || '';
 
 let currentLanguage = localStorage.getItem('language') || 'en';
 let hasUnsavedChanges = false;
@@ -408,10 +408,17 @@ async function runPipeline() {
         runButton.textContent = currentLanguage === 'ar' ? 'جارٍ التشغيل...' : 'Running...';
         
         // Trigger GitHub Actions workflow_dispatch
-        const response = await fetch('https://api.github.com/repos/username/repo/dispatches', {
+        const [owner, repo] = (window?.CONFIG?.GITHUB_REPO || '').split('/').filter(Boolean);
+if (!owner || !repo) {
+  showNotification(currentLanguage === 'ar' ? 'لم يتم تكوين المستودع في الإعدادات' : 'Repository not configured in settings', 'error');
+  runButton.disabled = false;
+  runButton.textContent = originalText;
+  return;
+}
+const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/dispatches`, {
             method: 'POST',
             headers: {
-                'Authorization': 'token YOUR_GITHUB_TOKEN',
+                'Authorization': `token ${window?.CONFIG?.GITHUB_TOKEN || ''}`,
                 'Accept': 'application/vnd.github.v3+json'
             },
             body: JSON.stringify({

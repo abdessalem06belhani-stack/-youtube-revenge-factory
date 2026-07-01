@@ -7,7 +7,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 import edge_tts
-import aiofiles
 from pydub import AudioSegment
 import io
 
@@ -354,7 +353,7 @@ class TTSEngine:
         
         return " ".join(ssml_parts)
     
-    def _generate_audio_with_retry(self, text: str, voice: str, config: TTSConfig) -> bytes:
+    async def _generate_audio_with_retry(self, text: str, voice: str, config: TTSConfig) -> bytes:
         """
         Generate audio with retry logic.
         
@@ -387,20 +386,20 @@ class TTSEngine:
                     pitch=f"{config.pitch}%"
                 )
                 
-                # Get audio data
-                audio_data = asyncio.run(communicate.save(
-                    f"temp_{attempt}.mp3",
+                # Get audio data using a temp file
+                temp_path = f"temp_{attempt}_{int(time.time())}.mp3"
+                await communicate.save(
+                    temp_path,
                     bitrate="128k",
                     timeout=config.timeout_seconds
-                ))
+                )
                 
                 # Read the generated file
-                with open(f"temp_{attempt}.mp3", "rb") as f:
+                with open(temp_path, "rb") as f:
                     audio_bytes = f.read()
                 
                 # Clean up temp file
-                import os
-                os.remove(f"temp_{attempt}.mp3")
+                os.remove(temp_path)
                 
                 logger.debug(f"Successfully generated audio on attempt {attempt + 1}")
                 return audio_bytes
@@ -408,6 +407,14 @@ class TTSEngine:
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {e}")
+                
+                # Clean up temp file if it exists
+                temp_path = f"temp_{attempt}_{int(time.time())}.mp3"
+                if os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except OSError:
+                        pass
                 
                 # If this is the last attempt, try fallback voice
                 if attempt == config.max_retries - 1 and config.fallback_enabled:
@@ -423,17 +430,17 @@ class TTSEngine:
                             pitch=f"{config.pitch}%"
                         )
                         
-                        audio_data = asyncio.run(communicate.save(
-                            f"temp_fallback_{attempt}.mp3",
+                        fallback_path = f"temp_fallback_{attempt}_{int(time.time())}.mp3"
+                        await communicate.save(
+                            fallback_path,
                             bitrate="128k",
                             timeout=config.timeout_seconds
-                        ))
+                        )
                         
-                        with open(f"temp_fallback_{attempt}.mp3", "rb") as f:
+                        with open(fallback_path, "rb") as f:
                             audio_bytes = f.read()
                         
-                        import os
-                        os.remove(f"temp_fallback_{attempt}.mp3")
+                        os.remove(fallback_path)
                         
                         logger.info(f"Successfully generated audio with fallback voice: {fallback_voice}")
                         return audio_bytes
@@ -441,6 +448,12 @@ class TTSEngine:
                     except Exception as fallback_error:
                         logger.error(f"Fallback voice also failed: {fallback_error}")
                         last_error = fallback_error
+                        
+                        if os.path.exists(fallback_path):
+                            try:
+                                os.remove(fallback_path)
+                            except OSError:
+                                pass
         
         raise AudioGenerationError(f"Failed to generate audio after {config.max_retries} attempts. Last error: {last_error}")
     
@@ -500,7 +513,7 @@ class TTSEngine:
         
         # Generate audio
         try:
-            audio_data = self._generate_audio_with_retry(text, voice, tts_config)
+            audio_data = await self._generate_audio_with_retry(text, voice, tts_config)
             
             # Save to cache
             self._save_to_cache(cache_key, audio_data)

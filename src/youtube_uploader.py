@@ -6,7 +6,6 @@ from typing import Optional, Callable, Dict, Any, List
 from dataclasses import dataclass
 from enum import Enum
 
-import google.auth
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -275,9 +274,8 @@ class YouTubeUploader:
             }
         }
         
-        # Add thumbnail if provided
-        if metadata.thumbnail_path and os.path.exists(metadata.thumbnail_path):
-            request_body['snippet']['defaultThumbnail'] = metadata.thumbnail_path
+        # Note: Thumbnails are uploaded via the thumbnails.set() API endpoint,
+        # not as part of video insert. Call upload_thumbnail() separately.
         
         # Prepare media upload
         media = MediaFileUpload(
@@ -391,6 +389,39 @@ class YouTubeUploader:
             raise
         except Exception as e:
             raise UploadError(f"Upload failed: {str(e)}")
+    
+    def upload_thumbnail(self, video_id: str, thumbnail_path: str) -> Dict[str, Any]:
+        """
+        Upload a custom thumbnail for a video. YouTube API requires a separate
+        thumbnails.set() call — thumbnails are NOT part of videos.insert().
+        
+        Args:
+            video_id: The YouTube video ID to set the thumbnail for
+            thumbnail_path: Path to the thumbnail image file
+            
+        Returns:
+            API response data
+            
+        Raises:
+            UploadError: If thumbnail upload fails
+        """
+        if not self.youtube_client:
+            self.authenticate()
+        
+        if not os.path.exists(thumbnail_path):
+            raise UploadError(f"Thumbnail file not found: {thumbnail_path}")
+        
+        try:
+            media = MediaFileUpload(thumbnail_path, mimetype='image/png')
+            request = self.youtube_client.thumbnails().set(
+                videoId=video_id,
+                media_body=media
+            )
+            response = request.execute()
+            logger.info(f"Thumbnail uploaded for video {video_id}")
+            return response
+        except Exception as e:
+            raise UploadError(f"Thumbnail upload failed: {e}")
     
     def get_channel_info(self) -> Dict[str, Any]:
         """
