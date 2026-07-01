@@ -22,9 +22,10 @@ env:
   PYTHON_VERSION: '3.11'
   PIP_CACHE_DIR: ${{ github.workspace }}/.cache/pip
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-  SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+  SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
   YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
   YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+  YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
   NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
   GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
   PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
@@ -48,15 +49,13 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-          cache-dependency-path: |
-            requirements.txt
-            youtube-revenge-factory/requirements.txt
+          cache-dependency-path: requirements.txt
 
       - name: Setup pip cache
         uses: actions/cache@v4
         with:
           path: ${{ env.PIP_CACHE_DIR }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
@@ -64,27 +63,21 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-          cd youtube-revenge-factory
-          pip install -r requirements.txt
 
       - name: Set up environment
         run: |
-          echo "PYTHONPATH=${{ github.workspace }}:" >> $GITHUB_ENV
+          echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
           echo "WORKFLOW_ID=${{ github.run_id }}" >> $GITHUB_ENV
           echo "VIDEO_INDEX=${{ matrix.video_index }}" >> $GITHUB_ENV
+          mkdir -p outputs
 
       - name: Initialize pipeline
         run: |
-          cd youtube-revenge-factory
           python -c "
-          import json
-          import os
+          import json, os
           from datetime import datetime
-          
           pipeline_data = {
               'run_id': '${{ github.run_id }}',
-              'workflow_id': '${{ github.workflow }}',
-              'run_number': '${{ github.run_number }}',
               'video_index': ${{ matrix.video_index }},
               'source_video': '${{ github.event.inputs.source_video }}',
               'level': '${{ github.event.inputs.level }}',
@@ -94,135 +87,122 @@ jobs:
               'status': 'initialized',
               'artifacts': {}
           }
-          
           os.makedirs('outputs', exist_ok=True)
           with open('outputs/pipeline_state.json', 'w') as f:
               json.dump(pipeline_data, f, indent=2)
-          print(f'Pipeline initialized: {pipeline_data}')
+          print(f'Pipeline initialized')
           "
 
-      - name: Step 1: Scrape trending videos
+      - name: Step 1 — Scrape trending videos
         run: |
-          cd youtube-revenge-factory
-          python -m app.main scrape \
+          python -m src.main scrape \
             --output outputs/step1_scraped_data.json \
-            --source "${{ github.event.inputs.source_video }}" \
-            --level "${{ github.event.inputs.level }}"
+            --source "${{ github.event.inputs.source_video }}"
 
-      - name: Step 2: Rewrite story
+      - name: Step 2 — Rewrite story
         run: |
-          cd youtube-revenge-factory
-          python -m app.main rewrite \
+          python -m src.main rewrite \
             --input outputs/step1_scraped_data.json \
             --output outputs/step2_rewritten_story.json \
             --level "${{ github.event.inputs.level }}"
 
-      - name: Step 3: Generate TTS
+      - name: Step 3 — Generate TTS
         run: |
-          cd youtube-revenge-factory
-          python -m app.main tts \
+          python -m src.main tts \
             --input outputs/step2_rewritten_story.json \
-            --output outputs/step3_tts_audio \
-            --voice "female" \
-            --speed "1.0"
+            --voice female --speed 1.0
 
-      - name: Step 4: Match backgrounds
+      - name: Step 4 — Match backgrounds
         run: |
-          cd youtube-revenge-factory
-          python -m app.main backgrounds \
+          python -m src.main backgrounds \
             --input outputs/step2_rewritten_story.json \
             --output outputs/step4_backgrounds \
-            --count 3 \
-            --style "nature"
+            --count 3
 
-      - name: Step 5: Generate thumbnail
+      - name: Step 5 — Generate thumbnail
         run: |
-          cd youtube-revenge-factory
-          python -m app.main thumbnail \
+          python -m src.main thumbnail \
             --input outputs/step2_rewritten_story.json \
             --output outputs/step5_thumbnail.png \
-            --style "modern"
+            --style modern
 
-      - name: Step 6: Trigger Colab for 4K rendering
+      - name: Step 6 — Trigger Colab rendering (optional)
         run: |
-          cd youtube-revenge-factory
-          python -m app.main trigger-colab \
-            --story outputs/step2_rewritten_story.json \
-            --audio outputs/step3_tts_audio \
-            --backgrounds outputs/step4_backgrounds \
-            --thumbnail outputs/step5_thumbnail.png \
-            --output outputs/step6_rendered_video \
-            --resolution "4k" \
-            --webhook "${{ secrets.COLAB_WEBHOOK_URL }}"
+          if [ -n "${{ secrets.COLAB_WEBHOOK_URL }}" ]; then
+            curl -X POST "${{ secrets.COLAB_WEBHOOK_URL }}" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "story": "outputs/step2_rewritten_story.json",
+                "audio": "outputs/step3_tts_audio",
+                "backgrounds": "outputs/step4_backgrounds",
+                "thumbnail": "outputs/step5_thumbnail.png",
+                "resolution": "4k",
+                "run_id": "${{ github.run_id }}",
+                "video_index": ${{ matrix.video_index }}
+              }'
+          else
+            echo "No Colab webhook configured — skipping 4K rendering"
+          fi
 
-      - name: Step 7: Upload to YouTube
+      - name: Step 7 — Upload to YouTube
         run: |
-          cd youtube-revenge-factory
-          python -m app.main upload \
+          python -m src.main upload \
             --video outputs/step6_rendered_video \
             --story outputs/step2_rewritten_story.json \
-            --title "YouTube Revenge Story - Video ${{ matrix.video_index }}" \
-            --description "Generated by YouTube Revenge Story Factory pipeline. Run ID: ${{ github.run_id }}, Video Index: ${{ matrix.video_index }}"
+            --title "YouTube Revenge Story — Run ${{ github.run_id }} Video ${{ matrix.video_index }}" \
+            --description "Generated by YouTube Revenge Story Factory. Run: ${{ github.run_id }}, Video: ${{ matrix.video_index }}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: pipeline-artifacts-${{ github.run_id }}-video-${{ matrix.video_index }}
-          path: |
-            youtube-revenge-factory/outputs/
+          path: outputs/
           retention-days: 30
 
       - name: Notify Dashboard via Supabase
         run: |
-          cd youtube-revenge-factory
           python -c "
-          import requests
-          import json
+          import requests, json, os
           from datetime import datetime
-          
-          pipeline_data = {
-              'run_id': '${{ github.run_id }}',
-              'video_index': ${{ matrix.video_index }},
-              'status': 'completed',
-              'timestamp': datetime.utcnow().isoformat(),
-              'workflow_url': '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}',
-              'artifacts': {
-                  'story': 'outputs/step2_rewritten_story.json',
-                  'audio': 'outputs/step3_tts_audio',
-                  'backgrounds': 'outputs/step4_backgrounds',
-                  'thumbnail': 'outputs/step5_thumbnail.png',
-                  'video': 'outputs/step6_rendered_video'
-              }
-          }
-          
-          # Update pipeline state
-          response = requests.post(
-              f'{${{ env.SUPABASE_URL }}}/rest/v1/pipeline_runs',
-              headers={
-                  'Authorization': f'Bearer ${{ env.SUPABASE_ANON_KEY }}',
-                  'Content-Type': 'application/json',
-                  'Prefer': 'return=representation'
-              },
-              json=pipeline_data
-          )
-          
-          if response.status_code in [200, 201]:
-              print(f'✓ Dashboard notified: {response.json()}')
+          supabase_url = os.environ.get('SUPABASE_URL', '')
+          supabase_key = os.environ.get('SUPABASE_KEY', '')
+          if not supabase_url or not supabase_key:
+              print('Supabase URL or key missing — skipping notification')
           else:
-              print(f'✗ Failed to notify dashboard: {response.status_code} - {response.text}')
+              data = {
+                  'run_id': '${{ github.run_id }}',
+                  'video_index': ${{ matrix.video_index }},
+                  'status': 'completed',
+                  'timestamp': datetime.utcnow().isoformat(),
+                  'workflow_url': '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+              }
+              try:
+                  r = requests.post(
+                      f'{supabase_url}/rest/v1/pipeline_runs',
+                      headers={
+                          'Authorization': f'Bearer {supabase_key}',
+                          'Content-Type': 'application/json',
+                          'Prefer': 'return=representation'
+                      },
+                      json=data
+                  )
+                  if r.status_code in (200, 201):
+                      print(f'Dashboard notified: {r.json()}')
+                  else:
+                      print(f'Dashboard notification failed: {r.status_code} — {r.text}')
+              except Exception as e:
+                  print(f'Dashboard notification error: {e}')
           "
 
       - name: Cleanup
         if: always()
         run: |
-          cd youtube-revenge-factory
           rm -rf outputs/step*_temp outputs/tmp_* 2>/dev/null || true
           echo "Cleanup completed"
 
       - name: Final status
         run: |
-          echo "🎉 Pipeline completed successfully!"
-          echo "📊 Run ID: ${{ github.run_id }}"
-          echo "🎬 Video Index: ${{ matrix.video_index }}"
-          echo "🔗 Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          echo "📁 Artifacts: Available in GitHub Actions artifacts"
+          echo "== Pipeline completed =="
+          echo "Run ID: ${{ github.run_id }}"
+          echo "Video Index: ${{ matrix.video_index }}"
+          echo "Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
