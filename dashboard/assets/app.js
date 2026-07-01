@@ -1,3 +1,8 @@
+/* =============================================================
+   YouTube Revenge Factory — Advanced Dashboard (app.js)
+   Settings persistence via Supabase · GitHub API · AR/EN i18n
+   ============================================================= */
+
 const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || window?.CONFIG?.SUPABASE_URL || '';
 const supabaseKey = import.meta.env?.VITE_SUPABASE_KEY || window?.CONFIG?.SUPABASE_KEY || '';
 
@@ -5,575 +10,869 @@ let currentLanguage = localStorage.getItem('language') || 'en';
 let hasUnsavedChanges = false;
 let settingsCache = {};
 
-// Initialize the dashboard
-async function initDashboard() {
-    setLanguage(currentLanguage);
-    await loadSettings();
-    setupEventListeners();
-    setupAutoSave();
-    updateConnectionStatus();
-}
-
-// Set language (Arabic/English)
-function setLanguage(lang) {
-    currentLanguage = lang;
-    localStorage.setItem('language', lang);
-    
-    const elements = document.querySelectorAll('[data-i18n]');
-    elements.forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        el.textContent = translations[lang][key] || el.textContent;
-    });
-    
-    // Update direction
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = lang;
-}
-
-// Translations
-const translations = {
-    'en': {
-        'app.title': 'YouTube Revenge Factory Dashboard',
-        'nav.settings': 'Settings',
-        'nav.pipeline': 'Pipeline',
-        'nav.analytics': 'Analytics',
-        'nav.logs': 'Logs',
-        'settings.title': 'Settings',
-        'settings.content': 'Content Source',
-        'settings.ai': 'AI Configuration',
-        'settings.video': 'Video Settings',
-        'settings.backgrounds': 'Backgrounds',
-        'settings.thumbnail': 'Thumbnail',
-        'settings.seo': 'SEO',
-        'settings.publishing': 'Publishing',
-        'content.source': 'Content Source',
-        'content.apiKey': 'API Key',
-        'content.endpoint': 'Endpoint',
-        'content.model': 'Model',
-        'ai.provider': 'AI Provider',
-        'ai.apiKey': 'API Key',
-        'ai.model': 'Model',
-        'ai.temperature': 'Temperature',
-        'video.resolution': 'Resolution',
-        'video.fps': 'FPS',
-        'video.duration': 'Duration (seconds)',
-        'backgrounds.provider': 'Background Provider',
-        'backgrounds.apiKey': 'API Key',
-        'thumbnail.style': 'Thumbnail Style',
-        'thumbnail.template': 'Template',
-        'thumbnail.overlay': 'Overlay Text',
-        'seo.title': 'Video Title Template',
-        'seo.description': 'Description Template',
-        'seo.tags': 'Tags',
-        'publishing.platform': 'Publishing Platform',
-        'publishing.schedule': 'Schedule',
-        'publishing.autoUpload': 'Auto Upload',
-        'save': 'Save',
-        'save.success': 'Settings saved successfully',
-        'save.error': 'Error saving settings',
-        'run.pipeline': 'Run Pipeline Now',
-        'pipeline.status': 'Pipeline Status',
-        'pipeline.logs': 'Pipeline Logs',
-        'analytics.videos': 'Videos Published',
-        'analytics.views': 'Total Views',
-        'analytics.engagement': 'Engagement Rate',
-        'status.idle': 'Idle',
-        'status.running': 'Running',
-        'status.completed': 'Completed',
-        'status.error': 'Error',
-        'connection.status': 'Connection Status',
-        'connection.connected': 'Connected',
-        'connection.disconnected': 'Disconnected',
-        'theme.toggle': 'Toggle Theme',
-        'language.toggle': 'العربية'
-    },
-    'ar': {
-        'app.title': 'مصنع الانتقام على يوتيوب - لوحة التحكم',
-        'nav.settings': 'الإعدادات',
-        'nav.pipeline': 'خط الأنابيب',
-        'nav.analytics': 'التحليلات',
-        'nav.logs': 'السجلات',
-        'settings.title': 'الإعدادات',
-        'settings.content': 'مصدر المحتوى',
-        'settings.ai': 'تكوين الذكاء الاصطناعي',
-        'settings.video': 'إعدادات الفيديو',
-        'settings.backgrounds': 'الخلفيات',
-        'settings.thumbnail': 'الصور المصغرة',
-        'settings.seo': 'تحسين محركات البحث',
-        'settings.publishing': 'النشر',
-        'content.source': 'مصدر المحتوى',
-        'content.apiKey': 'مفتاح API',
-        'content.endpoint': 'نقطة النهاية',
-        'content.model': 'النموذج',
-        'ai.provider': 'مزود الذكاء الاصطناعي',
-        'ai.apiKey': 'مفتاح API',
-        'ai.model': 'النموذج',
-        'ai.temperature': 'درجة الحرارة',
-        'video.resolution': 'الدقة',
-        'video.fps': 'الإطارات في الثانية',
-        'video.duration': 'المدة (بالثواني)',
-        'backgrounds.provider': 'مزود الخلفيات',
-        'backgrounds.apiKey': 'مفتاح API',
-        'thumbnail.style': 'نمط الصورة المصغرة',
-        'thumbnail.template': 'القالب',
-        'thumbnail.overlay': 'نص التغطية',
-        'seo.title': 'قالب عنوان الفيديو',
-        'seo.description': 'قالب الوصف',
-        'seo.tags': 'الوسوم',
-        'publishing.platform': 'منصة النشر',
-        'publishing.schedule': 'الجدول الزمني',
-        'publishing.autoUpload': 'الرفع التلقائي',
-        'save': 'حفظ',
-        'save.success': 'تم حفظ الإعدادات بنجاح',
-        'save.error': 'خطأ في حفظ الإعدادات',
-        'run.pipeline': 'تشغيل خط الأنابيب الآن',
-        'pipeline.status': 'حالة خط الأنابيب',
-        'pipeline.logs': 'سجلات خط الأنابيب',
-        'analytics.videos': 'عدد الفيديوهات المنشورة',
-        'analytics.views': 'إجمالي المشاهدات',
-        'analytics.engagement': 'معدل التفاعل',
-        'status.idle': 'غير نشط',
-        'status.running': 'يعمل',
-        'status.completed': 'مكتمل',
-        'status.error': 'خطأ',
-        'connection.status': 'حالة الاتصال',
-        'connection.connected': 'متصل',
-        'connection.disconnected': 'غير متصل',
-        'theme.toggle': 'تبديل المظهر',
-        'language.toggle': 'English'
-    }
+/* ---- Default Settings ---- */
+const DEFAULTS = {
+  // Video basic
+  'video-resolution': '3840x2160',
+  'video-width': 1920,
+  'video-height': 1080,
+  'video-fps': 30,
+  'video-duration': 120,
+  // Video advanced
+  'video-crf': 18,
+  'video-preset': 'slow',
+  'video-pixfmt': 'yuv420p',
+  'video-scene-duration': 5,
+  // Backgrounds
+  'source-priority': ['pexels', 'pixabay', 'unsplash', 'gradient'],
+  'background-kenburns': 1.03,
+  'background-cache-dir': 'data/backgrounds/cache',
+  // Audio
+  'audio-tts-engine': 'edge_tts',
+  'audio-voice': 'random',
+  'audio-speed': 0.95,
+  // AI
+  'ai-primary': 'nvidia_nim',
+  'ai-primary-model': 'meta/llama-3.1-70b-instruct',
+  'ai-backup': 'gemini',
+  'ai-backup-model': '',
+  'ai-temperature': 0.7,
+  // Publishing
+  'publishing-platform': 'youtube',
+  'publishing-category': 'Entertainment',
+  'publishing-privacy': 'unlisted',
+  'publishing-language': 'en',
+  'publishing-auto-upload': false,
+  // Pipeline
+  'pipeline-channel-analysis': true,
+  'pipeline-content-finding': true,
+  'pipeline-story-rewriting': true,
+  'pipeline-tts': true,
+  'pipeline-backgrounds': true,
+  'pipeline-thumbnail': true,
+  'pipeline-final-output': true,
+  'pipeline-max-retries': 3,
+  'pipeline-retry-delay': 5.0,
+  'pipeline-stage-timeout': 300,
+  // API keys
+  'api-nvidia': '',
+  'api-gemini': '',
+  'api-pexels': '',
+  'api-pixabay': '',
+  'api-unsplash': '',
+  // SEO
+  'seo-title': '',
+  'seo-description': '',
+  'seo-tags': '',
 };
 
-// Supabase API client
-class SupabaseClient {
-    constructor(url, key) {
-        this.url = url;
-        this.key = key;
-        this.headers = {
-            'apikey': key,
-            'Authorization': `Bearer ${key}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-        };
-    }
+/* =============================================================
+   Translations (EN / AR)
+   ============================================================= */
+const translations = {
+  en: {
+    'app.title': 'YouTube Revenge Factory — Advanced Dashboard',
+    'app.shortTitle': 'Revenge Factory',
+    'nav.settings': 'Settings',
+    'nav.pipeline': 'Pipeline',
+    'nav.analytics': 'Analytics',
+    'nav.logs': 'Logs',
+    'settings.title': 'Advanced Settings',
+    'settings.video': 'Video Settings',
+    'settings.videoAdvanced': 'Video — Advanced',
+    'settings.backgrounds': 'Backgrounds',
+    'settings.audio': 'Audio',
+    'settings.ai': 'AI Configuration',
+    'settings.publishing': 'Publishing',
+    'settings.pipeline': 'Pipeline Stages',
+    'settings.apiKeys': 'API Keys',
+    'settings.seo': 'SEO',
+    'video.resolution': 'Resolution',
+    'video.width': 'Width',
+    'video.height': 'Height',
+    'video.fps': 'FPS',
+    'video.duration': 'Duration (seconds)',
+    'video.crf': 'CRF (Quality)',
+    'video.preset': 'Encoder Preset',
+    'video.pixelFormat': 'Pixel Format',
+    'video.sceneDuration': 'Scene Duration (seconds)',
+    'backgrounds.sourcePriority': 'Source Priority',
+    'backgrounds.kenburns': 'Ken Burns Zoom',
+    'backgrounds.cacheDir': 'Cache Directory',
+    'audio.ttsEngine': 'TTS Engine',
+    'audio.voice': 'Voice',
+    'audio.speed': 'Speed',
+    'ai.primaryProvider': 'Primary Provider',
+    'ai.primaryModel': 'Primary Model',
+    'ai.backupProvider': 'Backup Provider',
+    'ai.backupModel': 'Backup Model',
+    'ai.temperature': 'Temperature',
+    'publishing.platform': 'Platform',
+    'publishing.category': 'Category',
+    'publishing.privacy': 'Privacy',
+    'publishing.language': 'Language',
+    'publishing.autoUpload': 'Auto Upload',
+    'pipeline.channelAnalysis': 'Channel Analysis',
+    'pipeline.contentFinding': 'Content Finding',
+    'pipeline.storyRewriting': 'Story Rewriting',
+    'pipeline.tts': 'TTS Generation',
+    'pipeline.backgrounds': 'Background Matching',
+    'pipeline.thumbnail': 'Thumbnail Generation',
+    'pipeline.finalOutput': 'Final Output',
+    'pipeline.maxRetries': 'Max Retries',
+    'pipeline.retryDelay': 'Retry Delay (s)',
+    'pipeline.stageTimeout': 'Stage Timeout (s)',
+    'api.nvidia': 'NVIDIA API Key',
+    'api.gemini': 'Gemini API Key',
+    'api.pexels': 'Pexels API Key',
+    'api.pixabay': 'Pixabay API Key',
+    'api.unsplash': 'Unsplash Access Key',
+    'seo.title': 'Video Title Template',
+    'seo.description': 'Description Template',
+    'seo.tags': 'Tags (comma separated)',
+    'save': 'Save Settings',
+    'save.clean': 'All changes saved',
+    'save.dirty': 'Unsaved changes',
+    'save.success': 'Settings saved successfully',
+    'save.error': 'Error saving settings',
+    'reset': 'Reset to Defaults',
+    'reset.confirm': 'Reset all settings to defaults?',
+    'reset.done': 'Settings reset to defaults',
+    'run.pipeline': 'Run Pipeline Now',
+    'pipeline.status': 'Pipeline Status',
+    'pipeline.date': 'Date',
+    'pipeline.trigger': 'Trigger',
+    'pipeline.duration': 'Duration',
+    'pipeline.actions': 'Actions',
+    'pipeline.noRuns': 'No pipeline runs yet',
+    'pipeline.logs': 'Pipeline Logs',
+    'pipeline.running': 'Running...',
+    'pipeline.started': 'Pipeline started successfully',
+    'pipeline.failed': 'Failed to run pipeline',
+    'pipeline.norepo': 'Repository not configured in settings',
+    'analytics.title': 'Analytics',
+    'analytics.videos': 'Videos Published',
+    'analytics.views': 'Total Views',
+    'analytics.engagement': 'Engagement Rate',
+    'status.idle': 'Idle',
+    'status.running': 'Running',
+    'status.completed': 'Completed',
+    'status.error': 'Error',
+    'status.pending': 'Pending',
+    'connection.connected': 'Connected',
+    'connection.disconnected': 'Disconnected',
+    'theme.toggle': 'Toggle Theme',
+    'language.toggle': 'العربية',
+    'logs.empty': 'No logs available',
+    'logs.view': 'View Logs',
+  },
+  ar: {
+    'app.title': 'مصنع الانتقام على يوتيوب — لوحة التحكم المتقدمة',
+    'app.shortTitle': 'مصنع الانتقام',
+    'nav.settings': 'الإعدادات',
+    'nav.pipeline': 'خط الإنتاج',
+    'nav.analytics': 'التحليلات',
+    'nav.logs': 'السجلات',
+    'settings.title': 'الإعدادات المتقدمة',
+    'settings.video': 'إعدادات الفيديو',
+    'settings.videoAdvanced': 'الفيديو — متقدم',
+    'settings.backgrounds': 'الخلفيات',
+    'settings.audio': 'الصوت',
+    'settings.ai': 'تكوين الذكاء الاصطناعي',
+    'settings.publishing': 'النشر',
+    'settings.pipeline': 'مراحل خط الإنتاج',
+    'settings.apiKeys': 'مفاتيح API',
+    'settings.seo': 'تحسين محركات البحث',
+    'video.resolution': 'الدقة',
+    'video.width': 'العرض',
+    'video.height': 'الارتفاع',
+    'video.fps': 'الإطارات في الثانية',
+    'video.duration': 'المدة (بالثواني)',
+    'video.crf': 'CRF (الجودة)',
+    'video.preset': 'إعدادات الترميز',
+    'video.pixelFormat': 'تنسيق البكسل',
+    'video.sceneDuration': 'مدة المشهد (ثواني)',
+    'backgrounds.sourcePriority': 'ترتيب المصادر',
+    'backgrounds.kenburns': 'تكبير Ken Burns',
+    'backgrounds.cacheDir': 'مجلد التخزين المؤقت',
+    'audio.ttsEngine': 'محرك TTS',
+    'audio.voice': 'الصوت',
+    'audio.speed': 'السرعة',
+    'ai.primaryProvider': 'المزود الأساسي',
+    'ai.primaryModel': 'النموذج الأساسي',
+    'ai.backupProvider': 'المزود الاحتياطي',
+    'ai.backupModel': 'النموذج الاحتياطي',
+    'ai.temperature': 'درجة الحرارة',
+    'publishing.platform': 'المنصة',
+    'publishing.category': 'التصنيف',
+    'publishing.privacy': 'الخصوصية',
+    'publishing.language': 'اللغة',
+    'publishing.autoUpload': 'الرفع التلقائي',
+    'pipeline.channelAnalysis': 'تحليل القناة',
+    'pipeline.contentFinding': 'البحث عن المحتوى',
+    'pipeline.storyRewriting': 'إعادة كتابة القصة',
+    'pipeline.tts': 'توليد الصوت',
+    'pipeline.backgrounds': 'مطابقة الخلفيات',
+    'pipeline.thumbnail': 'توليد الصورة المصغرة',
+    'pipeline.finalOutput': 'الإخراج النهائي',
+    'pipeline.maxRetries': 'عدد المحاولات',
+    'pipeline.retryDelay': 'تأخير إعادة المحاولة (ث)',
+    'pipeline.stageTimeout': 'مهلة المرحلة (ث)',
+    'api.nvidia': 'مفتاح NVIDIA API',
+    'api.gemini': 'مفتاح Gemini API',
+    'api.pexels': 'مفتاح Pexels API',
+    'api.pixabay': 'مفتاح Pixabay API',
+    'api.unsplash': 'مفتاح Unsplash',
+    'seo.title': 'قالب عنوان الفيديو',
+    'seo.description': 'قالب الوصف',
+    'seo.tags': 'الوسوم (مفصولة بفواصل)',
+    'save': 'حفظ الإعدادات',
+    'save.clean': 'جميع التغييرات محفوظة',
+    'save.dirty': 'هناك تغييرات غير محفوظة',
+    'save.success': 'تم حفظ الإعدادات بنجاح',
+    'save.error': 'خطأ في حفظ الإعدادات',
+    'reset': 'إعادة ضبط الإعدادات',
+    'reset.confirm': 'هل تريد إعادة ضبط جميع الإعدادات؟',
+    'reset.done': 'تمت إعادة الضبط للإعدادات الافتراضية',
+    'run.pipeline': 'تشغيل خط الإنتاج الآن',
+    'pipeline.status': 'حالة خط الإنتاج',
+    'pipeline.date': 'التاريخ',
+    'pipeline.trigger': 'المشغل',
+    'pipeline.duration': 'المدة',
+    'pipeline.actions': 'الإجراءات',
+    'pipeline.noRuns': 'لا توجد عمليات سابقة',
+    'pipeline.logs': 'سجلات خط الإنتاج',
+    'pipeline.running': 'جارٍ التشغيل...',
+    'pipeline.started': 'تم تشغيل خط الإنتاج بنجاح',
+    'pipeline.failed': 'فشل تشغيل خط الإنتاج',
+    'pipeline.norepo': 'لم يتم تكوين المستودع في الإعدادات',
+    'analytics.title': 'التحليلات',
+    'analytics.videos': 'الفيديوهات المنشورة',
+    'analytics.views': 'إجمالي المشاهدات',
+    'analytics.engagement': 'معدل التفاعل',
+    'status.idle': 'غير نشط',
+    'status.running': 'يعمل',
+    'status.completed': 'مكتمل',
+    'status.error': 'خطأ',
+    'status.pending': 'قيد الانتظار',
+    'connection.connected': 'متصل',
+    'connection.disconnected': 'غير متصل',
+    'theme.toggle': 'تبديل المظهر',
+    'language.toggle': 'English',
+    'logs.empty': 'لا توجد سجلات',
+    'logs.view': 'عرض السجلات',
+  },
+};
 
-    async get(table, query = '') {
-        const url = `${this.url}/rest/v1/${table}${query}`;
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: this.headers
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
-        }
-        
-        return await response.json();
-    }
-
-    async post(table, data) {
-        const url = `${this.url}/rest/v1/${table}`;
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: this.headers,
-            body: JSON.stringify(data)
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Failed to save: ${response.status} ${response.statusText}`);
-        }
-        
-        return await response.json();
-    }
-
-    async patch(table, id, data) {
-        const url = `${this.url}/rest/v1/${table}?id=eq.${id}`;
-        const response = await fetch(url, {
-            method: 'PATCH',
-            headers: this.headers,
-            body: JSON.stringify(data)
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Failed to update: ${response.status} ${response.statusText}`);
-        }
-        
-        return await response.json();
-    }
+/* =============================================================
+   i18n
+   ============================================================= */
+function setLanguage(lang) {
+  currentLanguage = lang;
+  localStorage.setItem('language', lang);
+  const t = translations[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (t[key]) el.textContent = t[key];
+  });
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.lang = lang;
+  document.getElementById('language-toggle').textContent = translations[lang === 'en' ? 'ar' : 'en']['language.toggle'];
 }
 
-// Initialize Supabase client
+function t(key) {
+  return translations[currentLanguage]?.[key] || key;
+}
+
+/* =============================================================
+   Supabase Client
+   ============================================================= */
+class SupabaseClient {
+  constructor(url, key) {
+    this.url = url;
+    this.key = key;
+    this.headers = {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    };
+  }
+  async get(table, query = '') {
+    const r = await fetch(`${this.url}/rest/v1/${table}${query}`, { method: 'GET', headers: this.headers });
+    if (!r.ok) throw new Error(`GET ${table} ${r.status}`);
+    return r.json();
+  }
+  async post(table, data) {
+    const r = await fetch(`${this.url}/rest/v1/${table}`, { method: 'POST', headers: this.headers, body: JSON.stringify(data) });
+    if (!r.ok) throw new Error(`POST ${table} ${r.status}`);
+    return r.json();
+  }
+  async patch(table, id, data) {
+    const r = await fetch(`${this.url}/rest/v1/${table}?id=eq.${id}`, { method: 'PATCH', headers: this.headers, body: JSON.stringify(data) });
+    if (!r.ok) throw new Error(`PATCH ${table} ${r.status}`);
+    return r.json();
+  }
+}
 const supabase = new SupabaseClient(supabaseUrl, supabaseKey);
 
-// Load settings from Supabase
-async function loadSettings() {
-    try {
-        const settings = await supabase.get('settings');
-        settingsCache = settings;
-        populateSettingsForm(settings);
-        updateConnectionStatus(true);
-    } catch (error) {
-        console.error('Failed to load settings:', error);
-        updateConnectionStatus(false);
-        showNotification(translations[currentLanguage]['save.error'], 'error');
-    }
-}
+/* =============================================================
+   Settings: Populate Form from Data
+   ============================================================= */
+function $(id) { return document.getElementById(id); }
 
-// Populate settings form with data
 function populateSettingsForm(settings) {
-    if (!settings || settings.length === 0) return;
-    
-    const setting = settings[0];
-    
-    // Populate each section
-    document.getElementById('content-source').value = setting.content_source || '';
-    document.getElementById('content-api-key').value = setting.content_api_key || '';
-    document.getElementById('content-endpoint').value = setting.content_endpoint || '';
-    document.getElementById('content-model').value = setting.content_model || '';
-    
-    document.getElementById('ai-provider').value = setting.ai_provider || '';
-    document.getElementById('ai-api-key').value = setting.ai_api_key || '';
-    document.getElementById('ai-model').value = setting.ai_model || '';
-    document.getElementById('ai-temperature').value = setting.ai_temperature || '0.7';
-    
-    document.getElementById('video-resolution').value = setting.video_resolution || '1080x1920';
-    document.getElementById('video-fps').value = setting.video_fps || '30';
-    document.getElementById('video-duration').value = setting.video_duration || '120';
-    
-    document.getElementById('backgrounds-provider').value = setting.backgrounds_provider || '';
-    document.getElementById('backgrounds-api-key').value = setting.backgrounds_api_key || '';
-    
-    document.getElementById('thumbnail-style').value = setting.thumbnail_style || 'modern';
-    document.getElementById('thumbnail-template').value = setting.thumbnail_template || '';
-    document.getElementById('thumbnail-overlay').value = setting.thumbnail_overlay || '';
-    
-    document.getElementById('seo-title').value = setting.seo_title || '';
-    document.getElementById('seo-description').value = setting.seo_description || '';
-    document.getElementById('seo-tags').value = setting.seo_tags || '';
-    
-    document.getElementById('publishing-platform').value = setting.publishing_platform || 'youtube';
-    document.getElementById('publishing-schedule').value = setting.publishing_schedule || 'immediate';
-    document.getElementById('publishing-auto-upload').checked = setting.publishing_auto_upload || false;
+  if (!settings || settings.length === 0) return;
+  const s = settings[0];
+  const map = {
+    'video-resolution': s.video_resolution,
+    'video-width': s.video_width,
+    'video-height': s.video_height,
+    'video-fps': s.video_fps,
+    'video-duration': s.video_duration,
+    'video-crf': s.video_crf,
+    'video-preset': s.video_preset,
+    'video-pixfmt': s.video_pixfmt,
+    'video-scene-duration': s.video_scene_duration,
+    'background-kenburns': s.background_kenburns,
+    'background-cache-dir': s.background_cache_dir,
+    'audio-tts-engine': s.audio_tts_engine,
+    'audio-voice': s.audio_voice,
+    'audio-speed': s.audio_speed,
+    'ai-primary': s.ai_primary,
+    'ai-primary-model': s.ai_primary_model,
+    'ai-backup': s.ai_backup,
+    'ai-backup-model': s.ai_backup_model,
+    'ai-temperature': s.ai_temperature,
+    'publishing-platform': s.publishing_platform,
+    'publishing-category': s.publishing_category,
+    'publishing-privacy': s.publishing_privacy,
+    'publishing-language': s.publishing_language,
+    'publishing-auto-upload': s.publishing_auto_upload,
+    'pipeline-channel-analysis': s.pipeline_channel_analysis,
+    'pipeline-content-finding': s.pipeline_content_finding,
+    'pipeline-story-rewriting': s.pipeline_story_rewriting,
+    'pipeline-tts': s.pipeline_tts,
+    'pipeline-backgrounds': s.pipeline_backgrounds,
+    'pipeline-thumbnail': s.pipeline_thumbnail,
+    'pipeline-final-output': s.pipeline_final_output,
+    'pipeline-max-retries': s.pipeline_max_retries,
+    'pipeline-retry-delay': s.pipeline_retry_delay,
+    'pipeline-stage-timeout': s.pipeline_stage_timeout,
+    'api-nvidia': s.api_nvidia,
+    'api-gemini': s.api_gemini,
+    'api-pexels': s.api_pexels,
+    'api-pixabay': s.api_pixabay,
+    'api-unsplash': s.api_unsplash,
+    'seo-title': s.seo_title,
+    'seo-description': s.seo_description,
+    'seo-tags': s.seo_tags,
+  };
+
+  for (const [id, val] of Object.entries(map)) {
+    const el = $(id);
+    if (!el) continue;
+    if (el.type === 'checkbox') el.checked = !!val;
+    else el.value = val ?? '';
+  }
+
+  // Range display values
+  ['video-crf', 'background-kenburns', 'audio-speed', 'ai-temperature'].forEach(id => {
+    const el = $(id);
+    if (el) updateRangeDisplay(id);
+  });
+
+  // Conditional custom resolution
+  toggleCustomResolution();
+
+  // Source priority
+  if (s.source_priority) {
+    try {
+      const order = typeof s.source_priority === 'string' ? JSON.parse(s.source_priority) : s.source_priority;
+      const container = $('source-priority');
+      if (container && Array.isArray(order)) {
+        const items = container.querySelectorAll('.toggle-group');
+        const lookup = {};
+        items.forEach(item => {
+          const cb = item.querySelector('input[type="checkbox"]');
+          if (cb) lookup[cb.value] = item;
+        });
+        container.innerHTML = '';
+        order.forEach(key => {
+          if (lookup[key]) container.appendChild(lookup[key]);
+        });
+        // Append any remaining
+        Object.values(lookup).forEach(item => {
+          if (!item.parentNode) container.appendChild(item);
+        });
+      }
+    } catch (e) { /* ignore parse errors */ }
+  }
 }
 
-// Save settings to Supabase
+/* ---- Range Slider Display ---- */
+function updateRangeDisplay(id) {
+  const el = $(id);
+  if (!el) return;
+  const val = el.value;
+  // Update inline label
+  const labelSpan = document.getElementById(id + '-value');
+  if (labelSpan) labelSpan.textContent = val;
+  // Update range companion
+  const container = el.closest('.range-container');
+  if (container) {
+    const display = container.querySelector('.range-value');
+    if (display) display.textContent = val;
+  }
+}
+
+/* ---- Custom Resolution Toggle ---- */
+function toggleCustomResolution() {
+  const sel = $('video-resolution');
+  const group = $('custom-res-group');
+  if (!sel || !group) return;
+  group.classList.toggle('visible', sel.value === 'custom');
+}
+
+/* ---- Password Toggle (global) ---- */
+function togglePassword(inputId, btn) {
+  const input = $(inputId);
+  if (!input) return;
+  const isPassword = input.type === 'password';
+  input.type = isPassword ? 'text' : 'password';
+  btn.textContent = isPassword ? '\u{1F441}' : '\u{1F441}';
+}
+
+window.togglePassword = togglePassword;
+
+/* =============================================================
+   Settings: Save
+   ============================================================= */
+function gatherSettings() {
+  function v(id) { const el = $(id); return el ? el.value : ''; }
+  function c(id) { const el = $(id); return el ? el.checked : false; }
+
+  // Source priority as JSON array
+  const priority = [];
+  const container = $('source-priority');
+  if (container) {
+    container.querySelectorAll('.toggle-group').forEach(item => {
+      const cb = item.querySelector('input[type="checkbox"]');
+      if (cb && cb.checked) priority.push(cb.value);
+    });
+  }
+
+  return {
+    video_resolution: v('video-resolution'),
+    video_width: parseInt(v('video-width')) || 1920,
+    video_height: parseInt(v('video-height')) || 1080,
+    video_fps: parseInt(v('video-fps')) || 30,
+    video_duration: parseInt(v('video-duration')) || 120,
+    video_crf: parseInt(v('video-crf')) ?? 18,
+    video_preset: v('video-preset'),
+    video_pixfmt: v('video-pixfmt'),
+    video_scene_duration: parseInt(v('video-scene-duration')) || 5,
+    source_priority: JSON.stringify(priority),
+    background_kenburns: parseFloat(v('background-kenburns')) || 1.03,
+    background_cache_dir: v('background-cache-dir'),
+    audio_tts_engine: v('audio-tts-engine'),
+    audio_voice: v('audio-voice'),
+    audio_speed: parseFloat(v('audio-speed')) || 0.95,
+    ai_primary: v('ai-primary'),
+    ai_primary_model: v('ai-primary-model'),
+    ai_backup: v('ai-backup'),
+    ai_backup_model: v('ai-backup-model'),
+    ai_temperature: parseFloat(v('ai-temperature')) || 0.7,
+    publishing_platform: v('publishing-platform'),
+    publishing_category: v('publishing-category'),
+    publishing_privacy: v('publishing-privacy'),
+    publishing_language: v('publishing-language'),
+    publishing_auto_upload: c('publishing-auto-upload'),
+    pipeline_channel_analysis: c('pipeline-channel-analysis'),
+    pipeline_content_finding: c('pipeline-content-finding'),
+    pipeline_story_rewriting: c('pipeline-story-rewriting'),
+    pipeline_tts: c('pipeline-tts'),
+    pipeline_backgrounds: c('pipeline-backgrounds'),
+    pipeline_thumbnail: c('pipeline-thumbnail'),
+    pipeline_final_output: c('pipeline-final-output'),
+    pipeline_max_retries: parseInt(v('pipeline-max-retries')) || 3,
+    pipeline_retry_delay: parseFloat(v('pipeline-retry-delay')) || 5.0,
+    pipeline_stage_timeout: parseInt(v('pipeline-stage-timeout')) || 300,
+    api_nvidia: v('api-nvidia'),
+    api_gemini: v('api-gemini'),
+    api_pexels: v('api-pexels'),
+    api_pixabay: v('api-pixabay'),
+    api_unsplash: v('api-unsplash'),
+    seo_title: v('seo-title'),
+    seo_description: v('seo-description'),
+    seo_tags: v('seo-tags'),
+    updated_at: new Date().toISOString(),
+  };
+}
+
 async function saveSettings() {
-    const setting = {
-        content_source: document.getElementById('content-source').value,
-        content_api_key: document.getElementById('content-api-key').value,
-        content_endpoint: document.getElementById('content-endpoint').value,
-        content_model: document.getElementById('content-model').value,
-        
-        ai_provider: document.getElementById('ai-provider').value,
-        ai_api_key: document.getElementById('ai-api-key').value,
-        ai_model: document.getElementById('ai-model').value,
-        ai_temperature: parseFloat(document.getElementById('ai-temperature').value),
-        
-        video_resolution: document.getElementById('video-resolution').value,
-        video_fps: parseInt(document.getElementById('video-fps').value),
-        video_duration: parseInt(document.getElementById('video-duration').value),
-        
-        backgrounds_provider: document.getElementById('backgrounds-provider').value,
-        backgrounds_api_key: document.getElementById('backgrounds-api-key').value,
-        
-        thumbnail_style: document.getElementById('thumbnail-style').value,
-        thumbnail_template: document.getElementById('thumbnail-template').value,
-        thumbnail_overlay: document.getElementById('thumbnail-overlay').value,
-        
-        seo_title: document.getElementById('seo-title').value,
-        seo_description: document.getElementById('seo-description').value,
-        seo_tags: document.getElementById('seo-tags').value,
-        
-        publishing_platform: document.getElementById('publishing-platform').value,
-        publishing_schedule: document.getElementById('publishing-schedule').value,
-        publishing_auto_upload: document.getElementById('publishing-auto-upload').checked,
-        
-        updated_at: new Date().toISOString()
-    };
-    
-    try {
-        // Check if settings exist
-        const existing = await supabase.get('settings', '?select=id');
-        
-        if (existing.length > 0) {
-            await supabase.patch('settings', existing[0].id, setting);
-        } else {
-            await supabase.post('settings', setting);
-        }
-        
-        settingsCache = setting;
-        hasUnsavedChanges = false;
-        updateSaveStatus();
-        showNotification(translations[currentLanguage]['save.success'], 'success');
-    } catch (error) {
-        console.error('Failed to save settings:', error);
-        showNotification(translations[currentLanguage]['save.error'], 'error');
+  const data = gatherSettings();
+  try {
+    const existing = await supabase.get('settings', '?select=id');
+    if (existing.length > 0) {
+      await supabase.patch('settings', existing[0].id, data);
+    } else {
+      await supabase.post('settings', data);
     }
+    settingsCache = data;
+    hasUnsavedChanges = false;
+    updateSaveStatus();
+    showNotification(t('save.success'), 'success');
+  } catch (err) {
+    console.error('Save error:', err);
+    showNotification(t('save.error'), 'error');
+  }
 }
 
-// Setup event listeners for form inputs
-function setupEventListeners() {
-    // Save button
-    document.getElementById('save-button').addEventListener('click', async () => {
-        await saveSettings();
+/* =============================================================
+   Reset to Defaults
+   ============================================================= */
+function resetToDefaults() {
+  if (!confirm(t('reset.confirm'))) return;
+  for (const [id, val] of Object.entries(DEFAULTS)) {
+    const el = $(id);
+    if (!el) continue;
+    if (el.type === 'checkbox') el.checked = !!val;
+    else el.value = val;
+  }
+  // Reset source priority checkboxes
+  const container = $('source-priority');
+  if (container) {
+    const order = ['pexels', 'pixabay', 'unsplash', 'gradient'];
+    const items = container.querySelectorAll('.toggle-group');
+    const lookup = {};
+    items.forEach(item => {
+      const cb = item.querySelector('input[type="checkbox"]');
+      if (cb) lookup[cb.value] = item;
     });
-    
-    // Language toggle
-    document.getElementById('language-toggle').addEventListener('click', () => {
-        const newLang = currentLanguage === 'en' ? 'ar' : 'en';
-        setLanguage(newLang);
-        showNotification(`Switched to ${translations[newLang]['language.toggle']}`, 'info');
+    container.innerHTML = '';
+    order.forEach(key => {
+      if (lookup[key]) {
+        const cb = lookup[key].querySelector('input[type="checkbox"]');
+        if (cb) cb.checked = true;
+        container.appendChild(lookup[key]);
+      }
     });
-    
-    // Theme toggle
-    document.getElementById('theme-toggle').addEventListener('click', () => {
-        const html = document.documentElement;
-        if (html.getAttribute('data-theme') === 'dark') {
-            html.removeAttribute('data-theme');
-            localStorage.setItem('theme', 'light');
-        } else {
-            html.setAttribute('data-theme', 'dark');
-            localStorage.setItem('theme', 'dark');
-        }
-    });
-    
-    // Run pipeline button
-    document.getElementById('run-pipeline').addEventListener('click', () => {
-        runPipeline();
-    });
-    
-    // Form inputs - mark as having unsaved changes
-    const formInputs = document.querySelectorAll('input, select, textarea');
-    formInputs.forEach(input => {
-        input.addEventListener('change', () => {
-            hasUnsavedChanges = true;
-            updateSaveStatus();
-        });
-        
-        input.addEventListener('input', () => {
-            hasUnsavedChanges = true;
-            updateSaveStatus();
-        });
-    });
+  }
+  // Range displays
+  ['video-crf', 'background-kenburns', 'audio-speed', 'ai-temperature'].forEach(updateRangeDisplay);
+  toggleCustomResolution();
+  hasUnsavedChanges = true;
+  updateSaveStatus();
+  showNotification(t('reset.done'), 'info');
 }
 
-// Setup auto-save functionality
-function setupAutoSave() {
-    let autoSaveTimeout;
-    
-    const formInputs = document.querySelectorAll('input, select, textarea');
-    formInputs.forEach(input => {
-        input.addEventListener('change', () => {
-            clearTimeout(autoSaveTimeout);
-            autoSaveTimeout = setTimeout(() => {
-                saveSettings();
-            }, 5000); // Auto-save after 5 seconds of inactivity
-        });
-    });
+/* =============================================================
+   Load Settings from Supabase
+   ============================================================= */
+async function loadSettings() {
+  try {
+    const result = await supabase.get('settings');
+    settingsCache = result;
+    populateSettingsForm(result);
+    updateConnectionStatus(true);
+  } catch (err) {
+    console.error('Load error:', err);
+    updateConnectionStatus(false);
+  }
 }
 
-// Update save status indicator
+/* =============================================================
+   Save Status
+   ============================================================= */
 function updateSaveStatus() {
-    const saveStatus = document.getElementById('save-status');
-    if (hasUnsavedChanges) {
-        saveStatus.textContent = currentLanguage === 'ar' ? 'هناك تغييرات غير محفوظة' : 'Unsaved changes';
-        saveStatus.className = 'save-status dirty';
-    } else {
-        saveStatus.textContent = currentLanguage === 'ar' ? 'جميع التغييرات محفوظة' : 'All changes saved';
-        saveStatus.className = 'save-status clean';
-    }
+  const el = $('save-status');
+  if (!el) return;
+  if (hasUnsavedChanges) {
+    el.textContent = t('save.dirty');
+    el.className = 'save-status dirty';
+  } else {
+    el.textContent = t('save.clean');
+    el.className = 'save-status clean';
+  }
 }
 
-// Update connection status
+/* =============================================================
+   Connection Status
+   ============================================================= */
 function updateConnectionStatus(connected) {
-    const statusIndicator = document.getElementById('connection-status');
-    const statusText = document.getElementById('connection-text');
-    
-    if (connected) {
-        statusIndicator.className = 'status-indicator connected';
-        statusText.textContent = translations[currentLanguage]['connection.connected'];
-    } else {
-        statusIndicator.className = 'status-indicator disconnected';
-        statusText.textContent = translations[currentLanguage]['connection.disconnected'];
-    }
+  const indicator = $('connection-status');
+  const text = $('connection-text');
+  if (!indicator || !text) return;
+  if (connected) {
+    indicator.className = 'status-indicator connected';
+    text.textContent = t('connection.connected');
+  } else {
+    indicator.className = 'status-indicator disconnected';
+    text.textContent = t('connection.disconnected');
+  }
 }
 
-// Run pipeline manually
+/* =============================================================
+   Run Pipeline
+   ============================================================= */
 async function runPipeline() {
-    const runButton = document.getElementById('run-pipeline');
-    const originalText = runButton.textContent;
-    
-    try {
-        runButton.disabled = true;
-        runButton.textContent = currentLanguage === 'ar' ? 'جارٍ التشغيل...' : 'Running...';
-        
-        // Trigger GitHub Actions workflow_dispatch
-        const [owner, repo] = (window?.CONFIG?.GITHUB_REPO || '').split('/').filter(Boolean);
-if (!owner || !repo) {
-  showNotification(currentLanguage === 'ar' ? 'لم يتم تكوين المستودع في الإعدادات' : 'Repository not configured in settings', 'error');
-  runButton.disabled = false;
-  runButton.textContent = originalText;
-  return;
-}
-const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/dispatches`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `token ${window?.CONFIG?.GITHUB_TOKEN || ''}`,
-                'Accept': 'application/vnd.github.v3+json'
-            },
-            body: JSON.stringify({
-                event_type: 'workflow_dispatch',
-                client_payload: {
-                    trigger: 'manual',
-                    timestamp: new Date().toISOString()
-                }
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to trigger workflow');
-        }
-        
-        showNotification(currentLanguage === 'ar' ? 'تم تشغيل خط الأنابيب بنجاح' : 'Pipeline started successfully', 'success');
-        
-        // Update pipeline status
-        await updatePipelineStatus();
-        
-    } catch (error) {
-        console.error('Failed to run pipeline:', error);
-        showNotification(currentLanguage === 'ar' ? 'خطأ في تشغيل خط الأنابيب' : 'Failed to run pipeline', 'error');
-    } finally {
-        runButton.disabled = false;
-        runButton.textContent = originalText;
-    }
+  const btn = $('run-pipeline');
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> ' + t('pipeline.running');
+  const owner = window?.CONFIG?.GITHUB_OWNER || '';
+  const repo = window?.CONFIG?.GITHUB_REPO || '';
+  const token = window?.CONFIG?.GITHUB_TOKEN || '';
+  if (!owner || !repo) {
+    showNotification(t('pipeline.norepo'), 'error');
+    btn.disabled = false;
+    btn.textContent = orig;
+    return;
+  }
+  try {
+    const r = await fetch(`https://api.github.com/repos/${owner}/${repo}/dispatches`, {
+      method: 'POST',
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+      },
+      body: JSON.stringify({ event_type: 'workflow_dispatch', client_payload: { trigger: 'manual', timestamp: new Date().toISOString() } }),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    showNotification(t('pipeline.started'), 'success');
+    updatePipelineStatus();
+  } catch (err) {
+    console.error('Pipeline trigger error:', err);
+    showNotification(t('pipeline.failed'), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
 }
 
-// Update pipeline status
+/* =============================================================
+   Pipeline Status
+   ============================================================= */
 async function updatePipelineStatus() {
-    try {
-        const runs = await supabase.get('pipeline_runs', '?select=*&order=created_at.desc&limit=10');
-        populatePipelineTable(runs);
-    } catch (error) {
-        console.error('Failed to update pipeline status:', error);
-    }
+  try {
+    const runs = await supabase.get('pipeline_runs', '?select=*&order=created_at.desc&limit=10');
+    populatePipelineTable(runs);
+  } catch (err) {
+    console.error('Pipeline status error:', err);
+  }
 }
 
-// Populate pipeline table
 function populatePipelineTable(runs) {
-    const tableBody = document.querySelector('#pipeline-table tbody');
-    tableBody.innerHTML = '';
-    
-    runs.forEach(run => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${new Date(run.created_at).toLocaleString()}</td>
-            <td><span class="status ${run.status}">${translations[currentLanguage][`status.${run.status}`] || run.status}</span></td>
-            <td>${run.trigger || 'manual'}</td>
-            <td>${run.duration ? `${run.duration}s` : '-'}</td>
-            <td><button class="btn-small" onclick="viewPipelineLogs('${run.id}')">View Logs</button></td>
-        `;
-        tableBody.appendChild(row);
-    });
+  const tbody = document.querySelector('#pipeline-table tbody');
+  if (!tbody) return;
+  if (!runs || runs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">${t('pipeline.noRuns')}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = '';
+  runs.forEach(run => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${new Date(run.created_at).toLocaleString()}</td>
+      <td><span class="status-badge ${run.status || 'idle'}">${t('status.' + (run.status || 'idle'))}</span></td>
+      <td>${run.trigger || 'manual'}</td>
+      <td>${run.duration ? run.duration + 's' : '—'}</td>
+      <td><button class="btn-small" onclick="viewPipelineLogs('${run.id}')">${t('logs.view')}</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
-// View pipeline logs
+/* =============================================================
+   Pipeline Logs
+   ============================================================= */
 async function viewPipelineLogs(runId) {
-    try {
-        const logs = await supabase.get('pipeline_logs', `?pipeline_run_id=eq.${runId}&order=created_at.asc`);
-        const logsContainer = document.getElementById('logs-container');
-        logsContainer.innerHTML = '';
-        
-        logs.forEach(log => {
-            const logEntry = document.createElement('div');
-            logEntry.className = 'log-entry';
-            logEntry.innerHTML = `
-                <div class="log-timestamp">${new Date(log.created_at).toLocaleString()}</div>
-                <div class="log-level ${log.level}">${log.level.toUpperCase()}</div>
-                <div class="log-message">${log.message}</div>
-            `;
-            logsContainer.appendChild(logEntry);
-        });
-        
-        document.getElementById('logs-modal').style.display = 'block';
-    } catch (error) {
-        console.error('Failed to load logs:', error);
+  try {
+    const logs = await supabase.get('pipeline_logs', `?pipeline_run_id=eq.${runId}&order=created_at.asc`);
+    const container = $('modal-logs-container');
+    if (!container) return;
+    if (!logs || logs.length === 0) {
+      container.innerHTML = `<p class="text-muted text-center">${t('logs.empty')}</p>`;
+    } else {
+      container.innerHTML = '';
+      logs.forEach(log => {
+        const div = document.createElement('div');
+        div.className = 'log-entry';
+        div.innerHTML = `
+          <span class="log-timestamp">${new Date(log.created_at).toLocaleString()}</span>
+          <span class="log-level ${log.level || 'INFO'}">${(log.level || 'INFO').toUpperCase()}</span>
+          <span class="log-message">${log.message}</span>
+        `;
+        container.appendChild(div);
+      });
     }
+    $('logs-modal').classList.add('show');
+  } catch (err) {
+    console.error('Logs error:', err);
+  }
 }
+window.viewPipelineLogs = viewPipelineLogs;
 
-// Update analytics
+/* =============================================================
+   Analytics
+   ============================================================= */
 async function updateAnalytics() {
-    try {
-        const analytics = await supabase.get('analytics', '?select=*&order=created_at.desc&limit=1');
-        if (analytics.length > 0) {
-            const data = analytics[0];
-            document.getElementById('analytics-videos').textContent = data.videos_published || 0;
-            document.getElementById('analytics-views').textContent = data.total_views || 0;
-            document.getElementById('analytics-engagement').textContent = `${data.engagement_rate || 0}%`;
-        }
-    } catch (error) {
-        console.error('Failed to update analytics:', error);
+  try {
+    const data = await supabase.get('analytics', '?select=*&order=created_at.desc&limit=1');
+    if (data.length > 0) {
+      const d = data[0];
+      if ($('analytics-videos')) $('analytics-videos').textContent = d.videos_published ?? 0;
+      if ($('analytics-views')) $('analytics-views').textContent = d.total_views ?? 0;
+      if ($('analytics-engagement')) $('analytics-engagement').textContent = (d.engagement_rate ?? 0) + '%';
     }
+  } catch (err) {
+    console.error('Analytics error:', err);
+  }
 }
 
-// Show notification
+/* =============================================================
+   Notifications
+   ============================================================= */
 function showNotification(message, type = 'info') {
-    const container = document.getElementById('notifications');
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-    
-    container.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.classList.add('show');
-    }, 10);
-    
-    setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => {
-            container.removeChild(notification);
-        }, 300);
-    }, 3000);
+  const container = $('notifications');
+  if (!container) return;
+  const n = document.createElement('div');
+  n.className = 'notification ' + type;
+  n.textContent = message;
+  container.appendChild(n);
+  requestAnimationFrame(() => n.classList.add('show'));
+  setTimeout(() => {
+    n.classList.remove('show');
+    setTimeout(() => { if (n.parentNode) n.parentNode.removeChild(n); }, 300);
+  }, 3500);
 }
 
-// Setup navigation
+/* =============================================================
+   Navigation
+   ============================================================= */
 function setupNavigation() {
-    const navLinks = document.querySelectorAll('.nav-link');
-    const sections = document.querySelectorAll('.content-section');
-    
-    navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            
-            // Update active state
-            navLinks.forEach(l => l.classList.remove('active'));
-            link.classList.add('active');
-            
-            // Show section
-            const target = link.getAttribute('href').substring(1);
-            sections.forEach(section => {
-                section.classList.remove('active');
-            });
-            document.getElementById(target).classList.add('active');
-            
-            // Update analytics when analytics section is shown
-            if (target === 'analytics') {
-                updateAnalytics();
-            }
-        });
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      link.classList.add('active');
+      const target = link.getAttribute('href').substring(1);
+      document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+      const section = $(target);
+      if (section) section.classList.add('active');
+      // Close mobile sidebar
+      $('sidebar').classList.remove('open');
+      $('sidebar-overlay').classList.remove('open');
+      if (target === 'analytics') updateAnalytics();
     });
+  });
 }
 
-// Initialize everything when DOM is ready
+/* =============================================================
+   Mobile Sidebar
+   ============================================================= */
+function setupMobileNav() {
+  const hamburger = $('hamburger-btn');
+  const sidebar = $('sidebar');
+  const overlay = $('sidebar-overlay');
+  if (!hamburger || !sidebar || !overlay) return;
+  hamburger.addEventListener('click', () => {
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('open');
+  });
+  overlay.addEventListener('click', () => {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('open');
+  });
+}
+
+/* =============================================================
+   Event Listeners
+   ============================================================= */
+function setupEventListeners() {
+  // Save
+  $('save-button').addEventListener('click', saveSettings);
+  // Reset
+  $('reset-button').addEventListener('click', resetToDefaults);
+  // Run pipeline
+  $('run-pipeline').addEventListener('click', runPipeline);
+  // Language
+  $('language-toggle').addEventListener('click', () => {
+    setLanguage(currentLanguage === 'en' ? 'ar' : 'en');
+    updateSaveStatus();
+  });
+  // Theme
+  $('theme-toggle').addEventListener('click', () => {
+    const html = document.documentElement;
+    const theme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  });
+  // Modal close
+  $('modal-close').addEventListener('click', () => {
+    $('logs-modal').classList.remove('show');
+  });
+  $('logs-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) $('logs-modal').classList.remove('show');
+  });
+
+  // Range slider live updates
+  document.querySelectorAll('input[type="range"]').forEach(el => {
+    el.addEventListener('input', () => updateRangeDisplay(el.id));
+    el.addEventListener('change', markDirty);
+  });
+
+  // Custom resolution toggle
+  const resSel = $('video-resolution');
+  if (resSel) {
+    resSel.addEventListener('change', () => { toggleCustomResolution(); markDirty(); });
+  }
+
+  // Track unsaved changes on all inputs
+  document.querySelectorAll('#settings-form input, #settings-form select, #settings-form textarea').forEach(el => {
+    el.addEventListener('change', markDirty);
+    el.addEventListener('input', markDirty);
+  });
+}
+
+function markDirty() {
+  hasUnsavedChanges = true;
+  updateSaveStatus();
+}
+
+/* =============================================================
+   Auto-save
+   ============================================================= */
+function setupAutoSave() {
+  let timeout;
+  document.querySelectorAll('#settings-form input, #settings-form select, #settings-form textarea').forEach(el => {
+    el.addEventListener('change', () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(saveSettings, 5000);
+    });
+  });
+}
+
+/* =============================================================
+   Init
+   ============================================================= */
+async function initDashboard() {
+  setLanguage(currentLanguage);
+  await loadSettings();
+  setupEventListeners();
+  setupAutoSave();
+  updateConnectionStatus(false);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Set initial theme
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    
-    initDashboard();
-    setupNavigation();
-    
-    // Update pipeline status and analytics periodically
-    setInterval(updatePipelineStatus, 30000); // Every 30 seconds
-    setInterval(updateAnalytics, 60000); // Every minute
+  // Theme
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  initDashboard();
+  setupNavigation();
+  setupMobileNav();
+  // Periodic updates
+  setInterval(updatePipelineStatus, 30000);
+  setInterval(updateAnalytics, 60000);
 });

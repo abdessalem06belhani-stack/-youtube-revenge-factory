@@ -3,24 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title data-i18n="app.title">YouTube Revenge Factory Dashboard</title>
+  <title data-i18n="app.title">YouTube Revenge Factory — Advanced Dashboard</title>
   <link rel="stylesheet" href="styles.css">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🎬</text></svg>">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f97316' stroke-width='2'%3E%3Cpolygon points='23 7 16 12 23 17 23 7'/%3E%3Crect x='1' y='5' width='15' height='14' rx='2'/%3E%3C/svg%3E">
 </head>
 <body>
-  <nav class="sidebar">
+
+  <!-- Mobile Header -->
+  <div class="mobile-header">
+    <button class="hamburger" id="hamburger-btn" aria-label="Toggle menu">&#9776;</button>
+    <span style="color:var(--accent);font-weight:700;font-size:14px;" data-i18n="app.shortTitle">Revenge Factory</span>
+    <span></span>
+  </div>
+
+  <!-- Sidebar Overlay (mobile) -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <h2 data-i18n="app.title">YouTube Revenge Factory</h2>
     </div>
     <ul class="nav-list">
-      <li><a href="#settings" class="nav-link active" data-i18n="nav.settings">Settings</a></li>
-      <li><a href="#pipeline" class="nav-link" data-i18n="nav.pipeline">Pipeline</a></li>
-      <li><a href="#analytics" class="nav-link" data-i18n="nav.analytics">Analytics</a></li>
-      <li><a href="#logs" class="nav-link" data-i18n="nav.logs">Logs</a></li>
+      <li><a href="#settings" class="nav-link active"><span class="nav-icon">&#9881;</span><span data-i18n="nav.settings">Settings</span></a></li>
+      <li><a href="#pipeline" class="nav-link"><span class="nav-icon">&#9654;</span><span data-i18n="nav.pipeline">Pipeline</span></a></li>
+      <li><a href="#analytics" class="nav-link"><span class="nav-icon">&#128200;</span><span data-i18n="nav.analytics">Analytics</span></a></li>
+      <li><a href="#logs" class="nav-link"><span class="nav-icon">&#128196;</span><span data-i18n="nav.logs">Logs</span></a></li>
     </ul>
     <div class="sidebar-footer">
       <button id="language-toggle" class="btn-icon" data-i18n="language.toggle">العربية</button>
-      <button id="theme-toggle" class="btn-icon" data-i18n="theme.toggle">Toggle Theme</button>
+      <button id="theme-toggle" class="btn-icon">&#9790;</button>
       <div class="connection-status">
         <span id="connection-status" class="status-indicator disconnected"></span>
         <span id="connection-text" data-i18n="connection.disconnected">Disconnected</span>
@@ -28,152 +40,360 @@
     </div>
   </nav>
 
+  <!-- Main Content -->
   <main class="content">
-    <!-- Settings Section -->
+
+    <!-- ==================== SETTINGS ==================== -->
     <section id="settings" class="content-section active">
-      <h1 data-i18n="settings.title">Settings</h1>
-      <div id="save-status" class="save-status clean">All changes saved</div>
+      <h1 data-i18n="settings.title">Advanced Settings</h1>
+      <div id="save-status" class="save-status clean" data-i18n="save.clean">All changes saved</div>
       <form id="settings-form" class="settings-grid">
-        <div class="settings-card">
-          <h3 data-i18n="settings.content">Content Source</h3>
-          <label data-i18n="content.source">Content Source</label>
-          <input type="text" id="content-source" placeholder="e.g., youtube, manual">
 
-          <label data-i18n="content.apiKey">API Key</label>
-          <input type="password" id="content-api-key" placeholder="Enter API key">
-
-          <label data-i18n="content.endpoint">Endpoint</label>
-          <input type="text" id="content-endpoint" placeholder="https://...">
-
-          <label data-i18n="content.model">Model</label>
-          <input type="text" id="content-model" placeholder="model-name">
-        </div>
-
-        <div class="settings-card">
-          <h3 data-i18n="settings.ai">AI Configuration</h3>
-          <label data-i18n="ai.provider">AI Provider</label>
-          <select id="ai-provider">
-            <option value="nvidia">NVIDIA NIM</option>
-            <option value="gemini">Gemini</option>
-          </select>
-
-          <label data-i18n="ai.apiKey">API Key</label>
-          <input type="password" id="ai-api-key" placeholder="Enter API key">
-
-          <label data-i18n="ai.model">Model</label>
-          <input type="text" id="ai-model" placeholder="model-name">
-
-          <label data-i18n="ai.temperature">Temperature</label>
-          <input type="number" id="ai-temperature" min="0" max="2" step="0.1" value="0.7">
-        </div>
-
+        <!-- Card 1 — Video Settings (Basic) -->
         <div class="settings-card">
           <h3 data-i18n="settings.video">Video Settings</h3>
-          <label data-i18n="video.resolution">Resolution</label>
-          <select id="video-resolution">
-            <option value="1080x1920">1080×1920</option>
-            <option value="1920x1080">1920×1080</option>
-            <option value="3840x2160">3840×2160 (4K)</option>
-          </select>
-
-          <label data-i18n="video.fps">FPS</label>
-          <input type="number" id="video-fps" min="24" max="60" value="30">
-
-          <label data-i18n="video.duration">Duration (seconds)</label>
-          <input type="number" id="video-duration" min="30" max="600" value="120">
+          <div class="form-group">
+            <label data-i18n="video.resolution">Resolution</label>
+            <select id="video-resolution">
+              <option value="1080x1920">1080&times;1920 (Portrait)</option>
+              <option value="1920x1080">1920&times;1080 (Landscape)</option>
+              <option value="3840x2160">3840&times;2160 (4K)</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div class="form-group conditional-field" id="custom-res-group">
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;">
+                <label data-i18n="video.width">Width</label>
+                <input type="number" id="video-width" min="320" max="7680" value="1920">
+              </div>
+              <div style="flex:1;">
+                <label data-i18n="video.height">Height</label>
+                <input type="number" id="video-height" min="240" max="4320" value="1080">
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label data-i18n="video.fps">FPS</label>
+            <input type="number" id="video-fps" min="24" max="60" value="30">
+          </div>
+          <div class="form-group">
+            <label data-i18n="video.duration">Duration (seconds)</label>
+            <input type="number" id="video-duration" min="30" max="600" value="120">
+          </div>
         </div>
 
+        <!-- Card 2 — Video Settings (Advanced) -->
+        <div class="settings-card">
+          <h3 data-i18n="settings.videoAdvanced">Video — Advanced</h3>
+          <div class="form-group">
+            <label data-i18n="video.crf">CRF (Quality) — <span id="crf-value">18</span></label>
+            <div class="range-container">
+              <input type="range" id="video-crf" min="0" max="51" value="18">
+              <span class="range-value">18</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label data-i18n="video.preset">Encoder Preset</label>
+            <select id="video-preset">
+              <option value="ultrafast">Ultrafast</option>
+              <option value="superfast">Superfast</option>
+              <option value="veryfast">Veryfast</option>
+              <option value="faster">Faster</option>
+              <option value="fast">Fast</option>
+              <option value="medium">Medium</option>
+              <option value="slow" selected>Slow</option>
+              <option value="slower">Slower</option>
+              <option value="veryslow">Veryslow</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label data-i18n="video.pixelFormat">Pixel Format</label>
+            <select id="video-pixfmt">
+              <option value="yuv420p" selected>yuv420p</option>
+              <option value="yuv422p">yuv422p</option>
+              <option value="yuv444p">yuv444p</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label data-i18n="video.sceneDuration">Scene Duration (seconds)</label>
+            <input type="number" id="video-scene-duration" min="3" max="15" value="5">
+          </div>
+        </div>
+
+        <!-- Card 3 — Background Settings -->
         <div class="settings-card">
           <h3 data-i18n="settings.backgrounds">Backgrounds</h3>
-          <label data-i18n="backgrounds.provider">Background Provider</label>
-          <select id="backgrounds-provider">
-            <option value="">Auto</option>
-            <option value="pexels">Pexels</option>
-            <option value="unsplash">Unsplash</option>
-            <option value="gradient">Gradient</option>
-          </select>
-
-          <label data-i18n="backgrounds.apiKey">API Key</label>
-          <input type="password" id="backgrounds-api-key" placeholder="Enter API key">
+          <div class="form-group">
+            <label data-i18n="backgrounds.sourcePriority">Source Priority</label>
+            <div id="source-priority">
+              <div class="toggle-group"><span style="cursor:grab;color:var(--text-muted);">&#9776;</span><label><input type="checkbox" value="pexels" checked> Pexels</label></div>
+              <div class="toggle-group"><span style="cursor:grab;color:var(--text-muted);">&#9776;</span><label><input type="checkbox" value="pixabay" checked> Pixabay</label></div>
+              <div class="toggle-group"><span style="cursor:grab;color:var(--text-muted);">&#9776;</span><label><input type="checkbox" value="unsplash" checked> Unsplash</label></div>
+              <div class="toggle-group"><span style="cursor:grab;color:var(--text-muted);">&#9776;</span><label><input type="checkbox" value="gradient" checked> Gradient</label></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label data-i18n="backgrounds.kenburns">Ken Burns Zoom — <span id="kenburns-value">1.03</span></label>
+            <div class="range-container">
+              <input type="range" id="background-kenburns" min="1.0" max="1.10" step="0.01" value="1.03">
+              <span class="range-value">1.03</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label data-i18n="backgrounds.cacheDir">Cache Directory</label>
+            <input type="text" id="background-cache-dir" value="data/backgrounds/cache">
+          </div>
         </div>
 
+        <!-- Card 4 — Audio Settings -->
         <div class="settings-card">
-          <h3 data-i18n="settings.thumbnail">Thumbnail</h3>
-          <label data-i18n="thumbnail.style">Thumbnail Style</label>
-          <select id="thumbnail-style">
-            <option value="modern">Modern</option>
-            <option value="dramatic">Dramatic</option>
-            <option value="minimal">Minimal</option>
-          </select>
-
-          <label data-i18n="thumbnail.template">Template</label>
-          <input type="text" id="thumbnail-template" placeholder="template-name">
-
-          <label data-i18n="thumbnail.overlay">Overlay Text</label>
-          <input type="text" id="thumbnail-overlay" placeholder="Revenge Story">
+          <h3 data-i18n="settings.audio">Audio</h3>
+          <div class="form-group">
+            <label data-i18n="audio.ttsEngine">TTS Engine</label>
+            <select id="audio-tts-engine">
+              <option value="edge_tts" selected>Edge TTS</option>
+              <option value="gtts">gTTS</option>
+              <option value="pyttsx3">pyttsx3</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label data-i18n="audio.voice">Voice</label>
+            <input type="text" id="audio-voice" placeholder="random" value="random">
+          </div>
+          <div class="form-group">
+            <label data-i18n="audio.speed">Speed — <span id="speed-value">0.95</span></label>
+            <div class="range-container">
+              <input type="range" id="audio-speed" min="0.5" max="2.0" step="0.05" value="0.95">
+              <span class="range-value">0.95</span>
+            </div>
+          </div>
         </div>
 
+        <!-- Card 5 — AI Configuration -->
         <div class="settings-card">
-          <h3 data-i18n="settings.seo">SEO</h3>
-          <label data-i18n="seo.title">Video Title Template</label>
-          <input type="text" id="seo-title" placeholder="{title} - Revenge Story">
-
-          <label data-i18n="seo.description">Description Template</label>
-          <textarea id="seo-description" rows="3" placeholder="Watch this amazing revenge story..."></textarea>
-
-          <label data-i18n="seo.tags">Tags</label>
-          <input type="text" id="seo-tags" placeholder="revenge, story, drama">
+          <h3 data-i18n="settings.ai">AI Configuration</h3>
+          <div class="form-group">
+            <label data-i18n="ai.primaryProvider">Primary Provider</label>
+            <select id="ai-primary">
+              <option value="nvidia_nim" selected>NVIDIA NIM</option>
+              <option value="gemini">Gemini</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label data-i18n="ai.primaryModel">Primary Model</label>
+            <input type="text" id="ai-primary-model" value="meta/llama-3.1-70b-instruct">
+          </div>
+          <div class="form-group">
+            <label data-i18n="ai.backupProvider">Backup Provider</label>
+            <select id="ai-backup">
+              <option value="gemini" selected>Gemini</option>
+              <option value="nvidia_nim">NVIDIA NIM</option>
+              <option value="none">None</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label data-i18n="ai.backupModel">Backup Model</label>
+            <input type="text" id="ai-backup-model" value="">
+          </div>
+          <div class="form-group">
+            <label data-i18n="ai.temperature">Temperature — <span id="temperature-value">0.7</span></label>
+            <div class="range-container">
+              <input type="range" id="ai-temperature" min="0" max="2" step="0.1" value="0.7">
+              <span class="range-value">0.7</span>
+            </div>
+          </div>
         </div>
 
+        <!-- Card 6 — Publishing Settings -->
         <div class="settings-card">
           <h3 data-i18n="settings.publishing">Publishing</h3>
-          <label data-i18n="publishing.platform">Publishing Platform</label>
-          <select id="publishing-platform">
-            <option value="youtube">YouTube</option>
-            <option value="tiktok">TikTok</option>
-          </select>
-
-          <label data-i18n="publishing.schedule">Schedule</label>
-          <select id="publishing-schedule">
-            <option value="immediate">Immediate</option>
-            <option value="scheduled">Scheduled</option>
-          </select>
-
-          <label>
-            <input type="checkbox" id="publishing-auto-upload">
-            <span data-i18n="publishing.autoUpload">Auto Upload</span>
-          </label>
+          <div class="form-group">
+            <label data-i18n="publishing.platform">Platform</label>
+            <select id="publishing-platform">
+              <option value="youtube" selected>YouTube</option>
+              <option value="tiktok">TikTok</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label data-i18n="publishing.category">Category</label>
+            <select id="publishing-category">
+              <option value="Entertainment" selected>Entertainment</option>
+              <option value="Education">Education</option>
+              <option value="Music">Music</option>
+              <option value="News">News</option>
+              <option value="Gaming">Gaming</option>
+              <option value="Comedy">Comedy</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label data-i18n="publishing.privacy">Privacy</label>
+            <select id="publishing-privacy">
+              <option value="public">Public</option>
+              <option value="unlisted" selected>Unlisted</option>
+              <option value="private">Private</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label data-i18n="publishing.language">Language</label>
+            <select id="publishing-language">
+              <option value="en" selected>English</option>
+              <option value="ar">العربية</option>
+            </select>
+          </div>
+          <div class="toggle-group">
+            <label class="toggle-switch">
+              <input type="checkbox" id="publishing-auto-upload">
+              <span class="toggle-slider"></span>
+            </label>
+            <label data-i18n="publishing.autoUpload">Auto Upload</label>
+          </div>
         </div>
+
+        <!-- Card 7 — Pipeline Stages -->
+        <div class="settings-card full-width">
+          <h3 data-i18n="settings.pipeline">Pipeline Stages</h3>
+          <div class="checkbox-grid">
+            <div class="toggle-group">
+              <label class="toggle-switch"><input type="checkbox" id="pipeline-channel-analysis" checked><span class="toggle-slider"></span></label>
+              <label data-i18n="pipeline.channelAnalysis">Channel Analysis</label>
+            </div>
+            <div class="toggle-group">
+              <label class="toggle-switch"><input type="checkbox" id="pipeline-content-finding" checked><span class="toggle-slider"></span></label>
+              <label data-i18n="pipeline.contentFinding">Content Finding</label>
+            </div>
+            <div class="toggle-group">
+              <label class="toggle-switch"><input type="checkbox" id="pipeline-story-rewriting" checked><span class="toggle-slider"></span></label>
+              <label data-i18n="pipeline.storyRewriting">Story Rewriting</label>
+            </div>
+            <div class="toggle-group">
+              <label class="toggle-switch"><input type="checkbox" id="pipeline-tts" checked><span class="toggle-slider"></span></label>
+              <label data-i18n="pipeline.tts">TTS Generation</label>
+            </div>
+            <div class="toggle-group">
+              <label class="toggle-switch"><input type="checkbox" id="pipeline-backgrounds" checked><span class="toggle-slider"></span></label>
+              <label data-i18n="pipeline.backgrounds">Background Matching</label>
+            </div>
+            <div class="toggle-group">
+              <label class="toggle-switch"><input type="checkbox" id="pipeline-thumbnail" checked><span class="toggle-slider"></span></label>
+              <label data-i18n="pipeline.thumbnail">Thumbnail Generation</label>
+            </div>
+            <div class="toggle-group">
+              <label class="toggle-switch"><input type="checkbox" id="pipeline-final-output" checked><span class="toggle-slider"></span></label>
+              <label data-i18n="pipeline.finalOutput">Final Output</label>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;">
+            <div class="form-group" style="flex:1;min-width:120px;">
+              <label data-i18n="pipeline.maxRetries">Max Retries</label>
+              <input type="number" id="pipeline-max-retries" min="1" max="10" value="3">
+            </div>
+            <div class="form-group" style="flex:1;min-width:120px;">
+              <label data-i18n="pipeline.retryDelay">Retry Delay (s)</label>
+              <input type="number" id="pipeline-retry-delay" min="1" max="60" step="0.5" value="5.0">
+            </div>
+            <div class="form-group" style="flex:1;min-width:120px;">
+              <label data-i18n="pipeline.stageTimeout">Stage Timeout (s)</label>
+              <input type="number" id="pipeline-stage-timeout" min="30" max="3600" value="300">
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 8 — API Keys -->
+        <div class="settings-card full-width">
+          <h3 data-i18n="settings.apiKeys">API Keys</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label data-i18n="api.nvidia">NVIDIA API Key</label>
+              <div class="password-wrapper">
+                <input type="password" id="api-nvidia" placeholder="nvapi-...">
+                <button type="button" class="password-toggle" onclick="togglePassword('api-nvidia', this)">&#128065;</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label data-i18n="api.gemini">Gemini API Key</label>
+              <div class="password-wrapper">
+                <input type="password" id="api-gemini" placeholder="AIza...">
+                <button type="button" class="password-toggle" onclick="togglePassword('api-gemini', this)">&#128065;</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label data-i18n="api.pexels">Pexels API Key</label>
+              <div class="password-wrapper">
+                <input type="password" id="api-pexels" placeholder="...">
+                <button type="button" class="password-toggle" onclick="togglePassword('api-pexels', this)">&#128065;</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label data-i18n="api.pixabay">Pixabay API Key</label>
+              <div class="password-wrapper">
+                <input type="password" id="api-pixabay" placeholder="...">
+                <button type="button" class="password-toggle" onclick="togglePassword('api-pixabay', this)">&#128065;</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label data-i18n="api.unsplash">Unsplash Access Key</label>
+              <div class="password-wrapper">
+                <input type="password" id="api-unsplash" placeholder="...">
+                <button type="button" class="password-toggle" onclick="togglePassword('api-unsplash', this)">&#128065;</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 9 — SEO Settings -->
+        <div class="settings-card full-width">
+          <h3 data-i18n="settings.seo">SEO</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label data-i18n="seo.title">Video Title Template</label>
+              <input type="text" id="seo-title" placeholder="{title} - Revenge Story">
+            </div>
+            <div class="form-group">
+              <label data-i18n="seo.tags">Tags (comma separated)</label>
+              <input type="text" id="seo-tags" placeholder="revenge, story, drama, karma">
+            </div>
+            <div class="form-group" style="grid-column:1/-1;">
+              <label data-i18n="seo.description">Description Template</label>
+              <textarea id="seo-description" rows="3" placeholder="Watch this amazing revenge story..."></textarea>
+            </div>
+          </div>
+        </div>
+
       </form>
 
+      <!-- Actions Bar -->
       <div class="actions">
-        <button id="save-button" class="btn-primary" data-i18n="save">Save</button>
+        <button id="save-button" class="btn-primary" data-i18n="save">Save Settings</button>
         <button id="run-pipeline" class="btn-secondary" data-i18n="run.pipeline">Run Pipeline Now</button>
+        <button id="reset-button" class="btn-danger" data-i18n="reset">Reset to Defaults</button>
       </div>
     </section>
 
-    <!-- Pipeline Section -->
+    <!-- ==================== PIPELINE ==================== -->
     <section id="pipeline" class="content-section">
       <h1 data-i18n="pipeline.status">Pipeline Status</h1>
-      <table id="pipeline-table">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Status</th>
-            <th>Trigger</th>
-            <th>Duration</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td colspan="5">No pipeline runs yet</td></tr>
-        </tbody>
-      </table>
+      <div class="pipeline-table-wrap">
+        <table id="pipeline-table">
+          <thead>
+            <tr>
+              <th data-i18n="pipeline.date">Date</th>
+              <th data-i18n="pipeline.status">Status</th>
+              <th data-i18n="pipeline.trigger">Trigger</th>
+              <th data-i18n="pipeline.duration">Duration</th>
+              <th data-i18n="pipeline.actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="5" class="text-center text-muted" data-i18n="pipeline.noRuns">No pipeline runs yet</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
-    <!-- Analytics Section -->
+    <!-- ==================== ANALYTICS ==================== -->
     <section id="analytics" class="content-section">
-      <h1 data-i18n="analytics.videos">Analytics</h1>
+      <h1 data-i18n="analytics.title">Analytics</h1>
       <div class="analytics-grid">
         <div class="analytics-card">
           <h3 data-i18n="analytics.videos">Videos Published</h3>
@@ -190,13 +410,14 @@
       </div>
     </section>
 
-    <!-- Logs Section -->
+    <!-- ==================== LOGS ==================== -->
     <section id="logs" class="content-section">
       <h1 data-i18n="pipeline.logs">Pipeline Logs</h1>
       <div id="logs-container" class="logs-container">
-        <p>No logs available</p>
+        <p class="text-muted text-center" data-i18n="logs.empty">No logs available</p>
       </div>
     </section>
+
   </main>
 
   <!-- Notifications -->
@@ -205,9 +426,9 @@
   <!-- Logs Modal -->
   <div id="logs-modal" class="modal">
     <div class="modal-content">
-      <span class="modal-close">&times;</span>
-      <h2>Pipeline Logs</h2>
-      <div id="modal-logs-container"></div>
+      <button class="modal-close" id="modal-close">&times;</button>
+      <h2 data-i18n="pipeline.logs">Pipeline Logs</h2>
+      <div id="modal-logs-container" class="logs-container"></div>
     </div>
   </div>
 
