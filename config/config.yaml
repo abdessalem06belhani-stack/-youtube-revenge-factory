@@ -1,0 +1,55 @@
+# youtube-revenge-factory configuration
+video:
+  width: 3840
+  height: 2160
+  fps: 30
+  scene_duration_sec: 5
+  crf: 18
+  preset: slow
+  pix_fmt: yuv420p
+
+background:
+  source_priority: [pexels, pixabay, unsplash, gradient]
+  kenburns_zoom: 1.03
+  cache_dir: data/backgrounds/cache
+
+audio:
+  tts_engine: edge_tts
+  voice: random
+  speed: 0.95
+
+ai:
+  primary: nvidia_nim
+  backup: gemini
+  backup2: groq
+  nvidia_model: meta/llama-3.1-70b-instruct
+
+reddit:
+  subreddits: [revengestories, ProRevenge, pettyrevenge, NuclearRevenge, family]
+  time_filter: month
+  min_score: 10
+  min_length: 500
+  max_length: 3000
+
+youtube:
+  category: Entertainment
+  privacy: unlisted
+  language: en
+
+# Pipeline configuration
+pipeline:
+  enable_channel_analysis: true
+  enable_content_finding: true
+  enable_story_rewriting: true
+  enable_tts_generation: true
+  enable_background_matching: true
+  enable_thumbnail_generation: true
+  enable_final_output: true
+  
+  max_retries: 3
+  retry_delay: 5.0
+  stage_timeout: 300
+  output_dir: "outputs/pipeline"
+  output_format: "json"
+  enable_dashboard_updates: true
+  dashboard_callback_url: null
