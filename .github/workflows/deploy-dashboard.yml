@@ -29,11 +29,4 @@ jobs:
           path: 'dashboard/'
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: 'dashboard/'
-          cname: 'dashboard.yourdomain.com'  # Optional: set custom domain
-          keep_files: false
-          allow_empty_commit: false
-          force: true
+        uses: actions/deploy-pages@v4
